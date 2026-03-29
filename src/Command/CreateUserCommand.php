@@ -31,6 +31,7 @@ final class CreateUserCommand extends Command
         $this
             ->addArgument('username', InputArgument::REQUIRED, 'Username for the account')
             ->addArgument('password', InputArgument::REQUIRED, 'Plain password for the account')
+            ->addOption('email', null, InputOption::VALUE_REQUIRED, 'Email used for reservation confirmations')
             ->addOption('admin', null, InputOption::VALUE_NONE, 'Assign ROLE_ADMIN to this user');
     }
 
@@ -40,7 +41,19 @@ final class CreateUserCommand extends Command
 
         $username = (string) $input->getArgument('username');
         $plainPassword = (string) $input->getArgument('password');
+        $emailOption = $input->getOption('email');
+        $email = is_string($emailOption) ? trim($emailOption) : '';
         $isAdmin = (bool) $input->getOption('admin');
+
+        if ('' === $email && false !== filter_var($username, FILTER_VALIDATE_EMAIL)) {
+            $email = $username;
+        }
+
+        if ('' !== $email && false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $io->error('Provided email is not valid.');
+
+            return Command::FAILURE;
+        }
 
         $existing = $this->entityManager
             ->getRepository(User::class)
@@ -54,6 +67,7 @@ final class CreateUserCommand extends Command
 
         $user = new User();
         $user->setUsername($username);
+        $user->setEmail('' !== $email ? $email : null);
         $user->setRoles($isAdmin ? ['ROLE_ADMIN'] : []);
         $user->setPassword($this->passwordHasher->hashPassword($user, $plainPassword));
 
