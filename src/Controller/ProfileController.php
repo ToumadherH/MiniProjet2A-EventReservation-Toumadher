@@ -18,6 +18,10 @@ final class ProfileController extends AbstractController
         return $this->json([
             'id' => method_exists($user, 'getId') ? $user->getId() : null,
             'username' => method_exists($user, 'getUserIdentifier') ? $user->getUserIdentifier() : null,
+            'email' => method_exists($user, 'getEmail') ? $user->getEmail() : null,
+            'firstName' => method_exists($user, 'getFirstName') ? $user->getFirstName() : null,
+            'lastName' => method_exists($user, 'getLastName') ? $user->getLastName() : null,
+            'passkeyEnabled' => method_exists($user, 'getPasskeyHash') ? null !== $user->getPasskeyHash() : false,
             'roles' => method_exists($user, 'getRoles') ? $user->getRoles() : [],
         ]);
     }

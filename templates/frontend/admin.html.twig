@@ -2,12 +2,16 @@
 
 {% set active = 'admin' %}
 
-{% block title %}Admin - Event Studio{% endblock %}
+{% block title %}Admin Dashboard - Event Studio{% endblock %}
 
 {% block body %}
+<div class="protected-page" id="adminPage">
 <section class="hero">
-    <h1>Admin Event Console</h1>
-    <p>Uses admin JWT to create and delete events through your existing API.</p>
+    <h1>Admin Dashboard</h1>
+    <p>Create events, refresh the catalog, and remove entries when needed.</p>
+    <div class="hero-actions">
+        <button id="adminLogoutButton" class="alt" type="button">Logout</button>
+    </div>
 </section>
 
 <section class="grid">
@@ -23,7 +27,7 @@
                 <input id="adminLocation" required>
             </div>
             <div class="field half">
-                <label for="adminDate">Date (ISO)</label>
+                <label for="adminDate">Date and time</label>
                 <input id="adminDate" value="2026-05-01T10:00:00+00:00" required>
             </div>
             <div class="field half">
@@ -44,9 +48,10 @@
     <article class="panel">
         <h2>Event Inventory</h2>
         <button id="adminRefresh" class="alt">Refresh</button>
-        <div id="adminList" class="list" style="margin-top:.8rem;"></div>
+        <div id="adminList" class="list"></div>
     </article>
 </section>
+</div>
 {% endblock %}
 
 {% block javascripts %}
@@ -117,7 +122,7 @@ document.getElementById('adminCreateForm').addEventListener('submit', async func
         EventApp.setFieldError('adminDate', 'Date is required.');
         hasError = true;
     } else if (!EventApp.isIsoDate(date)) {
-        EventApp.setFieldError('adminDate', 'Use ISO date format.');
+        EventApp.setFieldError('adminDate', 'Use a valid date-time format.');
         hasError = true;
     }
 
@@ -165,6 +170,20 @@ document.getElementById('adminRefresh').addEventListener('click', () => {
     loadAdminEvents().catch((error) => EventApp.flash('adminFlash', error.message));
 });
 
-loadAdminEvents().catch((error) => EventApp.flash('adminFlash', error.message));
+document.getElementById('adminLogoutButton').addEventListener('click', () => {
+    EventApp.clearToken();
+    window.location.href = EventApp.loginPath;
+});
+
+(async function initAdminSpace() {
+    const profile = await EventApp.protectPage({ requireAdmin: true });
+    if (!profile) {
+        return;
+    }
+
+    EventApp.showProtectedPage('#adminPage');
+
+    loadAdminEvents().catch((error) => EventApp.flash('adminFlash', error.message));
+})();
 </script>
 {% endblock %}

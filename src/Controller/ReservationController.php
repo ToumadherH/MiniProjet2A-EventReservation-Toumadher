@@ -25,7 +25,7 @@ final class ReservationController extends AbstractController
 
     #[Route('/api/events/{id}/reservations', name: 'api_reservations_create', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function create(Event $event): JsonResponse
+    public function create(Event $event, Request $request): JsonResponse
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
@@ -35,6 +35,31 @@ final class ReservationController extends AbstractController
         $eventId = $event->getId();
         if (null === $eventId) {
             return $this->json(['error' => 'Event id is required.'], 400);
+        }
+
+        // Extract form data from JSON body
+        $data = json_decode($request->getContent(), true) ?? [];
+        $firstName = $data['firstName'] ?? null;
+        $lastName = $data['lastName'] ?? null;
+        $email = $data['email'] ?? null;
+
+        // Validate and update user info
+        if ($firstName === '' || $lastName === '' || $email === '') {
+            return $this->json(['error' => 'First name, last name, and email are required.'], 400);
+        }
+
+        if ($firstName || $lastName || $email) {
+            if ($firstName) {
+                $user->setFirstName($firstName);
+            }
+            if ($lastName) {
+                $user->setLastName($lastName);
+            }
+            if ($email) {
+                $user->setEmail($email);
+            }
+            $this->entityManager->persist($user);
+            $this->entityManager->flush();
         }
 
         $alreadyReserved = $this->reservationRepository->findActiveForUserAndEvent((int) $user->getId(), $eventId);
@@ -54,9 +79,12 @@ final class ReservationController extends AbstractController
 
         $this->entityManager->persist($reservation);
         $this->entityManager->flush();
-        $this->reservationConfirmationMailer->sendCreated($user, $reservation);
+        $emailSent = $this->reservationConfirmationMailer->sendCreated($user, $reservation);
 
-        return $this->json($this->serializeReservation($reservation), 201);
+        return $this->json([
+            ...$this->serializeReservation($reservation),
+            'emailSent' => $emailSent,
+        ], 201);
     }
 
     #[Route('/api/reservations/me', name: 'api_reservations_me', methods: ['GET'])]

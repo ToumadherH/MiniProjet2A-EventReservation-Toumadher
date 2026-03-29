@@ -1,28 +1,34 @@
 {% extends 'base.html.twig' %}
 
-{% set active = 'reservations' %}
+{% set active = 'events' %}
 
 {% block title %}My Reservations - Event Studio{% endblock %}
 
 {% block body %}
+<div class="protected-page" id="reservationsPage">
 <section class="hero">
-    <h1>My Reservations</h1>
-    <p>Displays reservations from <code>/api/reservations/me</code> and allows cancellation.</p>
-    <div class="chips">
-        <span class="chip">Feed: /api/reservations/me</span>
-        <span class="chip">Cancel: DELETE /api/reservations/{id}</span>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+        <div>
+            <h1>My Reservations</h1>
+            <p>Review your current bookings and cancel when your plans change.</p>
+        </div>
+        <button id="userLogoutButton" class="alt" type="button" style="min-width: auto; padding: 0.6rem 1.2rem; height: fit-content;">Logout</button>
+    </div>
+    <div class="hero-actions">
+        <a class="ghost" href="{{ path('frontend_events') }}">Back to Event Catalog</a>
     </div>
 </section>
 
 <section class="grid">
     <article class="panel">
-        <h2>Reservation Feed</h2>
+        <h2>Reservation History</h2>
         <button id="refreshReservations" class="alt">Refresh</button>
-        <div class="note">Active reservations can be cancelled; cancelled ones are kept for traceability.</div>
+        <div class="note">Only active bookings can be cancelled.</div>
         <div id="reservationFlash" class="flash" style="display:none;"></div>
-        <div id="reservationList" class="list" style="margin-top:.8rem;"></div>
+        <div id="reservationList" class="list"></div>
     </article>
 </section>
+</div>
 {% endblock %}
 
 {% block javascripts %}
@@ -70,6 +76,24 @@ document.getElementById('refreshReservations').addEventListener('click', () => {
     loadReservations().catch((error) => EventApp.flash('reservationFlash', error.message));
 });
 
-loadReservations().catch((error) => EventApp.flash('reservationFlash', error.message));
+(async function initReservationPage() {
+    const profile = await EventApp.protectPage({ requireUser: true });
+    if (!profile) {
+        return;
+    }
+
+    EventApp.showProtectedPage('#reservationsPage');
+
+    loadReservations().catch((error) => EventApp.flash('reservationFlash', error.message));
+
+    // Add logout button handler
+    const logoutButton = document.getElementById('userLogoutButton');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            EventApp.clearToken();
+            window.location.href = '/app/login';
+        });
+    }
+})();
 </script>
 {% endblock %}

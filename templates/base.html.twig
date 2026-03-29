@@ -7,40 +7,37 @@
     <title>{% block title %}Event Reservation{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
     {% block stylesheets %}{% endblock %}
-
-    {% set frankenphpHotReload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-    {% if frankenphpHotReload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphpHotReload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-    {% endif %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+<div class="ambient"></div>
 <div class="shell">
+    {% set hideChrome = hide_chrome|default(false) %}
+    {% if not hideChrome %}
     <header class="topbar">
         <a class="brand" href="{{ path('frontend_home') }}">Event Studio</a>
         <nav class="menu">
             {% set active = active|default('home') %}
             <a class="{{ active == 'home' ? 'active' : '' }}" href="{{ path('frontend_home') }}">Home</a>
-            <a class="{{ active == 'login' ? 'active' : '' }}" href="{{ path('frontend_login') }}">Login</a>
-            <a class="{{ active == 'events' ? 'active' : '' }}" href="{{ path('frontend_events') }}">Events</a>
-            <a class="{{ active == 'reservations' ? 'active' : '' }}" href="{{ path('frontend_reservations') }}">My Reservations</a>
-            <a class="{{ active == 'admin' ? 'active' : '' }}" href="{{ path('frontend_admin') }}">Admin</a>
+            <a class="{{ active == 'login' ? 'active' : '' }}" data-guest-only href="{{ path('frontend_login') }}">Sign In</a>
+            <a class="{{ active == 'events' ? 'active' : '' }}" data-user-link style="display:none;" href="{{ path('frontend_events') }}">User Space</a>
+            <a class="{{ active == 'admin' ? 'active' : '' }}" data-admin-link style="display:none;" href="{{ path('frontend_admin') }}">Admin Dashboard</a>
         </nav>
-        <div class="auth-box">
-            <span id="authStatus" class="status warn">Not authenticated</span>
-            <button id="logoutButton" class="alt" type="button">Logout</button>
-        </div>
+        
     </header>
+    {% endif %}
 
-    {% block body %}{% endblock %}
+    <main class="page-content">
+        {% block body %}{% endblock %}
+    </main>
 
+    {% if not hideChrome %}
     <footer>
-        Event Reservation Frontend - Symfony Templates
+        Built for smooth event booking and fast admin operations.
     </footer>
+    {% endif %}
 </div>
 
 <script src="{{ asset('scripts/app-ui.js') }}"></script>
