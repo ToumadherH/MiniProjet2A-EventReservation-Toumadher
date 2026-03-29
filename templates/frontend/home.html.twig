@@ -1,49 +1,39 @@
 {% extends 'base.html.twig' %}
 
 {% set active = 'home' %}
+{% set hide_chrome = true %}
 
-{% block title %}Home - Event Studio{% endblock %}
+{% block title %}Welcome - Event Studio{% endblock %}
+
+{% block body_class %}landing-body{% endblock %}
 
 {% block body %}
-<section class="hero">
-    <h1>Plan. Reserve. Track.</h1>
-    <p>
-        This interface connects directly to your Symfony JWT API. Use the login page to store your token,
-        browse events, reserve seats, and manage reservations from one place.
-    </p>
-    <div class="quick-actions" style="margin-top:1rem;">
-        <a href="{{ path('frontend_login') }}">Authenticate</a>
-        <a href="{{ path('frontend_events') }}">Browse Events</a>
-        <a href="{{ path('frontend_reservations') }}">Manage Reservations</a>
-        <a href="{{ path('frontend_admin') }}">Open Admin Console</a>
+<section class="landing-shell">
+    <div class="landing-copy">
+        <div class="landing-badge">Event Reservation</div>
+        <h1>Appointment Booking</h1>
+        <p>
+            Book your events with a clean and fast flow.
+            Sign in to continue to your personal reservation space or admin dashboard.
+        </p>
+        <div class="hero-actions">
+            <a class="cta" href="{{ path('frontend_login') }}">Sign In</a>
+        </div>
+    </div>
+    <div class="landing-visual" aria-hidden="true">
+        <div class="calendar-card">
+            <div class="calendar-head">October</div>
+            <div class="calendar-grid">
+                {% for i in 1..35 %}
+                    <span class="cell {{ i in [11, 18, 25] ? 'marked' : '' }}">{{ i <= 31 ? i : '' }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="decor decor-a"></div>
+        <div class="decor decor-b"></div>
+        <div class="clock-dot"></div>
     </div>
 </section>
 
-<section class="grid">
-    <article class="panel">
-        <h2>Quick Start</h2>
-        <div class="kpi">
-            <div class="tile">
-                <div class="label">Step 1</div>
-                <div class="value">Login</div>
-                <div>Go to Login and get your JWT.</div>
-            </div>
-            <div class="tile">
-                <div class="label">Step 2</div>
-                <div class="value">Explore</div>
-                <div>Open Events and reserve available seats.</div>
-            </div>
-            <div class="tile">
-                <div class="label">Step 3</div>
-                <div class="value">Manage</div>
-                <div>Track and cancel bookings in My Reservations.</div>
-            </div>
-            <div class="tile">
-                <div class="label">Step 4</div>
-                <div class="value">Admin</div>
-                <div>Use Admin page for event CRUD with admin token.</div>
-            </div>
-        </div>
-    </article>
-</section>
+
 {% endblock %}

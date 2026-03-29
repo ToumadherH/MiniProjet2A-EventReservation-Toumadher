@@ -52,7 +52,7 @@ final class ApiCsrfSubscriber implements EventSubscriberInterface
             return false;
         }
 
-        if ('/api/login_check' === $path) {
+        if ('/api/login_check' === $path || '/api/passkey/login' === $path) {
             return false;
         }
 

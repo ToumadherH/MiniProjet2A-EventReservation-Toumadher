@@ -24,6 +24,7 @@ final class EventController extends AbstractController
     }
 
     #[Route('/api/events', name: 'api_events_list', methods: ['GET'])]
+    #[IsGranted('PUBLIC_ACCESS')]
     public function list(Request $request): JsonResponse
     {
         $page = max(1, (int) $request->query->get('page', 1));

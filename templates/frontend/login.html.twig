@@ -2,38 +2,46 @@
 
 {% set active = 'login' %}
 
-{% block title %}Login - Event Studio{% endblock %}
+{% block title %}Sign In - Event Studio{% endblock %}
 
 {% block body %}
 <section class="hero">
-    <h1>JWT Login</h1>
-    <p>Authenticate against <code>/api/login_check</code>. Token is stored in local storage for frontend calls.</p>
-    <div class="chips">
-        <span class="chip">API: /api/login_check</span>
-        <span class="chip">Method: POST JSON</span>
-        <span class="chip">Scope: frontend session</span>
-    </div>
+    <h1>Welcome back</h1>
+    <p>Sign in to access your personal space. You will be redirected automatically based on your role.</p>
 </section>
 
 <section class="grid">
-    <article class="panel">
-        <h2>Credentials</h2>
+    <article class="panel" style="max-width:720px; margin:0 auto; width:100%;">
+        <h2>Sign In</h2>
         <form id="loginForm" class="form-row">
             <div class="field half">
                 <label for="username">Username</label>
-                <input id="username" name="username" required>
+                <input id="username" name="username" autocomplete="username" required>
             </div>
             <div class="field half">
                 <label for="password">Password</label>
-                <input id="password" type="password" name="password" required>
+                <input id="password" type="password" name="password" autocomplete="current-password" required>
             </div>
             <div class="field">
                 <button id="loginSubmit" class="accent" type="submit">Sign In</button>
             </div>
         </form>
-        <div class="note">
-            Tip: test with both <code>ROLE_USER</code> and <code>ROLE_ADMIN</code> accounts to validate protected pages and actions.
-        </div>
+        <hr style="border:none; border-top:1px solid var(--line); margin:1rem 0;">
+        <h2>Sign In With Passkey</h2>
+        <form id="passkeyLoginForm" class="form-row">
+            <div class="field half">
+                <label for="passkeyUsername">Username</label>
+                <input id="passkeyUsername" name="passkeyUsername" autocomplete="username" required>
+            </div>
+            <div class="field half">
+                <label for="passkeyValue">Passkey</label>
+                <input id="passkeyValue" name="passkeyValue" placeholder="ABCD-EF12-3456-7890" required>
+            </div>
+            <div class="field">
+                <button id="passkeyLoginSubmit" class="accent" type="submit">Sign In With Passkey</button>
+            </div>
+        </form>
+        <div class="note">Admins are redirected to the admin dashboard. Standard users are redirected to the reservation space.</div>
         <div id="loginFlash" class="flash" style="display:none;"></div>
     </article>
 </section>
@@ -41,6 +49,17 @@
 
 {% block javascripts %}
 <script>
+(async function autoRedirectIfSignedIn() {
+    if (!EventApp.getToken()) {
+        return;
+    }
+
+    const profile = await EventApp.fetchProfile();
+    if (profile) {
+        await EventApp.redirectAfterLogin();
+    }
+})();
+
 document.getElementById('loginForm').addEventListener('submit', async function (event) {
     event.preventDefault();
     EventApp.clearFlash('loginFlash');
@@ -80,7 +99,56 @@ document.getElementById('loginForm').addEventListener('submit', async function (
         }
 
         EventApp.setToken(payload.token);
-        EventApp.flash('loginFlash', 'Login successful. JWT token saved.');
+        EventApp.flash('loginFlash', 'Signed in successfully. Redirecting...');
+        await EventApp.redirectAfterLogin();
+    } catch (error) {
+        EventApp.flash('loginFlash', error.message);
+    } finally {
+        EventApp.clearLoading(submitButton);
+    }
+});
+
+document.getElementById('passkeyLoginForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    EventApp.clearFlash('loginFlash');
+
+    const username = document.getElementById('passkeyUsername').value.trim();
+    const passkey = document.getElementById('passkeyValue').value.trim();
+    const submitButton = document.getElementById('passkeyLoginSubmit');
+
+    EventApp.clearFieldError('passkeyUsername');
+    EventApp.clearFieldError('passkeyValue');
+
+    let hasError = false;
+    if (!username) {
+        EventApp.setFieldError('passkeyUsername', 'Username is required.');
+        hasError = true;
+    }
+    if (!passkey) {
+        EventApp.setFieldError('passkeyValue', 'Passkey is required.');
+        hasError = true;
+    }
+
+    if (hasError) {
+        return;
+    }
+
+    try {
+        EventApp.setLoading(submitButton, 'Signing in...');
+        const response = await fetch('/api/passkey/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, passkey }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload.token) {
+            throw new Error(payload.error || 'Invalid credentials.');
+        }
+
+        EventApp.setToken(payload.token);
+        EventApp.flash('loginFlash', 'Signed in with passkey. Redirecting...');
+        await EventApp.redirectAfterLogin();
     } catch (error) {
         EventApp.flash('loginFlash', error.message);
     } finally {

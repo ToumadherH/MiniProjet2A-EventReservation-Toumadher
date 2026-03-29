@@ -17,11 +17,11 @@ final class ReservationConfirmationMailer
     ) {
     }
 
-    public function sendCreated(User $user, Reservation $reservation): void
+    public function sendCreated(User $user, Reservation $reservation): bool
     {
         $recipient = $user->getEmail();
         if (!is_string($recipient) || '' === trim($recipient)) {
-            return;
+            return false;
         }
 
         $event = $reservation->getEvent();
@@ -40,12 +40,15 @@ final class ReservationConfirmationMailer
 
         try {
             $this->mailer->send($email);
+            return true;
         } catch (\Throwable $exception) {
             $this->logger->error('Failed to send reservation confirmation email.', [
                 'reservation_id' => $reservation->getId(),
                 'user_id' => $user->getId(),
                 'error' => $exception->getMessage(),
             ]);
+
+            return false;
         }
     }
 }
