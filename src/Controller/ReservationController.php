@@ -6,6 +6,7 @@ use App\Entity\Event;
 use App\Entity\Reservation;
 use App\Entity\User;
 use App\Repository\ReservationRepository;
+use App\Service\ReservationConfirmationMailer;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,6 +19,7 @@ final class ReservationController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly ReservationRepository $reservationRepository,
+        private readonly ReservationConfirmationMailer $reservationConfirmationMailer,
     ) {
     }
 
@@ -52,6 +54,7 @@ final class ReservationController extends AbstractController
 
         $this->entityManager->persist($reservation);
         $this->entityManager->flush();
+        $this->reservationConfirmationMailer->sendCreated($user, $reservation);
 
         return $this->json($this->serializeReservation($reservation), 201);
     }
