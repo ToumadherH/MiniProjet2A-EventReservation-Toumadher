@@ -1,0 +1,14 @@
+<h1>Reservation confirmed</h1>
+
+<p>Hello {{ user.userIdentifier }},</p>
+
+<p>Your reservation has been created successfully.</p>
+
+<ul>
+    <li><strong>Reservation ID:</strong> {{ reservation.id }}</li>
+    <li><strong>Event:</strong> {{ event ? event.title : 'N/A' }}</li>
+    <li><strong>Date:</strong> {{ event and event.date ? event.date|date('Y-m-d H:i') : 'N/A' }}</li>
+    <li><strong>Location:</strong> {{ event ? event.location : 'N/A' }}</li>
+</ul>
+
+<p>Thank you for using Event Studio.</p>

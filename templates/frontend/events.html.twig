@@ -1,0 +1,233 @@
+{% extends 'base.html.twig' %}
+
+{% set active = 'events' %}
+
+{% block title %}Events - Event Studio{% endblock %}
+
+{% block body %}
+<section class="hero">
+    <h1>Event Catalog</h1>
+    <p>Fetches <code>/api/events</code> and allows authenticated users to reserve seats.</p>
+</section>
+
+<section class="grid">
+    <article class="panel">
+        <h2>Filter</h2>
+        <form id="eventFilter" class="form-row">
+            <div class="field half">
+                <label for="query">Search</label>
+                <input id="query" placeholder="title or description">
+            </div>
+            <div class="field half">
+                <label for="location">Location</label>
+                <input id="location" placeholder="city">
+            </div>
+            <div class="field half">
+                <label for="dateFrom">Date From (ISO)</label>
+                <input id="dateFrom" placeholder="2026-05-01T10:00:00+00:00">
+            </div>
+            <div class="field half">
+                <label for="dateTo">Date To (ISO)</label>
+                <input id="dateTo" placeholder="2026-05-20T10:00:00+00:00">
+            </div>
+            <div class="field">
+                <button id="eventFilterSubmit" type="submit">Load Events</button>
+            </div>
+        </form>
+        <div id="eventFlash" class="flash" style="display:none;"></div>
+    </article>
+
+    <article class="panel">
+        <h2>Available Events</h2>
+        <div id="eventLoading" class="loading-indicator" style="display:none;">Loading events...</div>
+        <div id="eventList" class="list"></div>
+        <div id="eventPagination" class="pagination" style="display:none;">
+            <button id="eventsPrev" class="alt" type="button">Previous</button>
+            <span id="eventsMeta"></span>
+            <button id="eventsNext" class="alt" type="button">Next</button>
+        </div>
+    </article>
+</section>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+const eventsState = {
+    page: 1,
+    limit: 6,
+};
+
+function syncInputsFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('query').value = params.get('q') || '';
+    document.getElementById('location').value = params.get('location') || '';
+    document.getElementById('dateFrom').value = params.get('date_from') || '';
+    document.getElementById('dateTo').value = params.get('date_to') || '';
+    eventsState.page = Math.max(1, parseInt(params.get('page') || '1', 10));
+}
+
+function syncUrlFromFilters() {
+    const params = new URLSearchParams();
+    const q = document.getElementById('query').value.trim();
+    const location = document.getElementById('location').value.trim();
+    const dateFrom = document.getElementById('dateFrom').value.trim();
+    const dateTo = document.getElementById('dateTo').value.trim();
+
+    if (q) params.set('q', q);
+    if (location) params.set('location', location);
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    params.set('page', String(eventsState.page));
+
+    const query = params.toString();
+    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
+    window.history.replaceState({}, '', nextUrl);
+}
+
+function setEventLoading(isLoading) {
+    const loading = document.getElementById('eventLoading');
+    const list = document.getElementById('eventList');
+    if (loading) {
+        loading.style.display = isLoading ? 'block' : 'none';
+    }
+    if (list) {
+        list.style.opacity = isLoading ? '0.5' : '1';
+    }
+}
+
+function renderPagination(total, page, limit) {
+    const pagination = document.getElementById('eventPagination');
+    const prev = document.getElementById('eventsPrev');
+    const next = document.getElementById('eventsNext');
+    const meta = document.getElementById('eventsMeta');
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const hasPrev = page > 1;
+    const hasNext = page < totalPages;
+
+    pagination.style.display = total > 0 ? 'flex' : 'none';
+    prev.disabled = !hasPrev;
+    next.disabled = !hasNext;
+    meta.textContent = `Page ${page} of ${totalPages} - ${total} result(s)`;
+}
+
+async function loadEvents() {
+    EventApp.clearFlash('eventFlash');
+    setEventLoading(true);
+
+    const dateFromRaw = document.getElementById('dateFrom').value.trim();
+    const dateToRaw = document.getElementById('dateTo').value.trim();
+
+    EventApp.clearFieldError('dateFrom');
+    EventApp.clearFieldError('dateTo');
+
+    if (dateFromRaw && !EventApp.isIsoDate(dateFromRaw)) {
+        EventApp.setFieldError('dateFrom', 'Use ISO date format.');
+        throw new Error('Invalid date_from format.');
+    }
+
+    if (dateToRaw && !EventApp.isIsoDate(dateToRaw)) {
+        EventApp.setFieldError('dateTo', 'Use ISO date format.');
+        throw new Error('Invalid date_to format.');
+    }
+
+    if (dateFromRaw && dateToRaw && new Date(dateFromRaw) > new Date(dateToRaw)) {
+        EventApp.setFieldError('dateTo', 'Date To must be after Date From.');
+        throw new Error('Invalid date range.');
+    }
+
+    const q = encodeURIComponent(document.getElementById('query').value.trim());
+    const location = encodeURIComponent(document.getElementById('location').value.trim());
+    const dateFrom = encodeURIComponent(dateFromRaw);
+    const dateTo = encodeURIComponent(dateToRaw);
+    const data = await EventApp.request(`/events?page=${eventsState.page}&limit=${eventsState.limit}&q=${q}&location=${location}&date_from=${dateFrom}&date_to=${dateTo}`);
+    syncUrlFromFilters();
+
+    const list = document.getElementById('eventList');
+    list.innerHTML = '';
+
+    if (!data.items || data.items.length === 0) {
+        list.innerHTML = '<div class="card"><strong>No events match your filters.</strong><div>Try changing query, location, or date range.</div></div>';
+        renderPagination(0, eventsState.page, eventsState.limit);
+        setEventLoading(false);
+        return;
+    }
+
+    data.items.forEach((eventItem) => {
+        const node = document.createElement('article');
+        node.className = 'card';
+        node.innerHTML = `
+            <div class="row">
+                <strong>${eventItem.title}</strong>
+                <span class="status ${eventItem.availableSeats > 0 ? 'ok' : 'warn'}">
+                    ${eventItem.availableSeats} seats left
+                </span>
+            </div>
+            <div>${eventItem.description || ''}</div>
+            <div><small>${new Date(eventItem.date).toLocaleString()} - ${eventItem.location}</small></div>
+            <div class="row" style="margin-top:.6rem;">
+                <button class="accent" data-id="${eventItem.id}">Reserve</button>
+            </div>
+        `;
+        list.appendChild(node);
+    });
+
+    list.querySelectorAll('button[data-id]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            try {
+                await EventApp.request(`/events/${btn.dataset.id}/reservations`, { method: 'POST' });
+                EventApp.flash('eventFlash', 'Reservation created successfully.');
+                await loadEvents();
+            } catch (error) {
+                EventApp.flash('eventFlash', error.message);
+            }
+        });
+    });
+
+    renderPagination(data.total || data.items.length, data.page || eventsState.page, data.limit || eventsState.limit);
+    setEventLoading(false);
+}
+
+document.getElementById('eventFilter').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const submitButton = document.getElementById('eventFilterSubmit');
+    try {
+        eventsState.page = 1;
+        EventApp.setLoading(submitButton, 'Loading...');
+        await loadEvents();
+    } catch (error) {
+        EventApp.flash('eventFlash', error.message);
+        setEventLoading(false);
+    } finally {
+        EventApp.clearLoading(submitButton);
+    }
+});
+
+document.getElementById('eventsPrev').addEventListener('click', async function () {
+    if (eventsState.page <= 1) return;
+    eventsState.page -= 1;
+    try {
+        await loadEvents();
+    } catch (error) {
+        EventApp.flash('eventFlash', error.message);
+        setEventLoading(false);
+    }
+});
+
+document.getElementById('eventsNext').addEventListener('click', async function () {
+    eventsState.page += 1;
+    try {
+        await loadEvents();
+    } catch (error) {
+        EventApp.flash('eventFlash', error.message);
+        setEventLoading(false);
+    }
+});
+
+syncInputsFromUrl();
+loadEvents().catch((error) => {
+    EventApp.flash('eventFlash', error.message);
+    setEventLoading(false);
+});
+</script>
+{% endblock %}

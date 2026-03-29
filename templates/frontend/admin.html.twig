@@ -1,0 +1,170 @@
+{% extends 'base.html.twig' %}
+
+{% set active = 'admin' %}
+
+{% block title %}Admin - Event Studio{% endblock %}
+
+{% block body %}
+<section class="hero">
+    <h1>Admin Event Console</h1>
+    <p>Uses admin JWT to create and delete events through your existing API.</p>
+</section>
+
+<section class="grid">
+    <article class="panel">
+        <h2>Create Event</h2>
+        <form id="adminCreateForm" class="form-row">
+            <div class="field half">
+                <label for="adminTitle">Title</label>
+                <input id="adminTitle" required>
+            </div>
+            <div class="field half">
+                <label for="adminLocation">Location</label>
+                <input id="adminLocation" required>
+            </div>
+            <div class="field half">
+                <label for="adminDate">Date (ISO)</label>
+                <input id="adminDate" value="2026-05-01T10:00:00+00:00" required>
+            </div>
+            <div class="field half">
+                <label for="adminSeats">Seats</label>
+                <input id="adminSeats" type="number" min="1" value="20" required>
+            </div>
+            <div class="field">
+                <label for="adminDescription">Description</label>
+                <textarea id="adminDescription" rows="3" required></textarea>
+            </div>
+            <div class="field">
+                <button id="adminCreateSubmit" class="accent" type="submit">Create Event</button>
+            </div>
+        </form>
+        <div id="adminFlash" class="flash" style="display:none;"></div>
+    </article>
+
+    <article class="panel">
+        <h2>Event Inventory</h2>
+        <button id="adminRefresh" class="alt">Refresh</button>
+        <div id="adminList" class="list" style="margin-top:.8rem;"></div>
+    </article>
+</section>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+async function loadAdminEvents() {
+    const data = await EventApp.request('/events');
+    const list = document.getElementById('adminList');
+    list.innerHTML = '';
+
+    if (!data.items || data.items.length === 0) {
+        list.innerHTML = '<div class="card">No events available.</div>';
+        return;
+    }
+
+    data.items.forEach((eventItem) => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="row">
+                <strong>${eventItem.title}</strong>
+                <span class="status">#${eventItem.id}</span>
+            </div>
+            <div>${eventItem.location} - ${new Date(eventItem.date).toLocaleString()}</div>
+            <div class="row" style="margin-top:.6rem;">
+                <button class="alt" data-delete="${eventItem.id}">Delete</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+
+    list.querySelectorAll('button[data-delete]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            try {
+                await EventApp.request(`/events/${btn.dataset.delete}`, { method: 'DELETE' });
+                EventApp.flash('adminFlash', 'Event deleted.');
+                await loadAdminEvents();
+            } catch (error) {
+                EventApp.flash('adminFlash', error.message);
+            }
+        });
+    });
+}
+
+document.getElementById('adminCreateForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    EventApp.clearFlash('adminFlash');
+
+    const submitButton = document.getElementById('adminCreateSubmit');
+
+    const title = document.getElementById('adminTitle').value.trim();
+    const location = document.getElementById('adminLocation').value.trim();
+    const date = document.getElementById('adminDate').value.trim();
+    const seatsRaw = document.getElementById('adminSeats').value;
+    const description = document.getElementById('adminDescription').value.trim();
+
+    ['adminTitle', 'adminLocation', 'adminDate', 'adminSeats', 'adminDescription'].forEach(EventApp.clearFieldError.bind(EventApp));
+
+    let hasError = false;
+    if (!title) {
+        EventApp.setFieldError('adminTitle', 'Title is required.');
+        hasError = true;
+    }
+    if (!location) {
+        EventApp.setFieldError('adminLocation', 'Location is required.');
+        hasError = true;
+    }
+    if (!date) {
+        EventApp.setFieldError('adminDate', 'Date is required.');
+        hasError = true;
+    } else if (!EventApp.isIsoDate(date)) {
+        EventApp.setFieldError('adminDate', 'Use ISO date format.');
+        hasError = true;
+    }
+
+    const seats = parseInt(seatsRaw, 10);
+    if (!Number.isInteger(seats) || seats <= 0) {
+        EventApp.setFieldError('adminSeats', 'Seats must be a positive integer.');
+        hasError = true;
+    }
+
+    if (!description) {
+        EventApp.setFieldError('adminDescription', 'Description is required.');
+        hasError = true;
+    }
+
+    if (hasError) {
+        return;
+    }
+
+    const payload = {
+        title,
+        location,
+        date,
+        seats,
+        description,
+    };
+
+    try {
+        EventApp.setLoading(submitButton, 'Creating...');
+        await EventApp.request('/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        EventApp.flash('adminFlash', 'Event created.');
+        this.reset();
+        await loadAdminEvents();
+    } catch (error) {
+        EventApp.flash('adminFlash', error.message);
+    } finally {
+        EventApp.clearLoading(submitButton);
+    }
+});
+
+document.getElementById('adminRefresh').addEventListener('click', () => {
+    loadAdminEvents().catch((error) => EventApp.flash('adminFlash', error.message));
+});
+
+loadAdminEvents().catch((error) => EventApp.flash('adminFlash', error.message));
+</script>
+{% endblock %}
