@@ -8,6 +8,11 @@
 <section class="hero">
     <h1>JWT Login</h1>
     <p>Authenticate against <code>/api/login_check</code>. Token is stored in local storage for frontend calls.</p>
+    <div class="chips">
+        <span class="chip">API: /api/login_check</span>
+        <span class="chip">Method: POST JSON</span>
+        <span class="chip">Scope: frontend session</span>
+    </div>
 </section>
 
 <section class="grid">
@@ -26,6 +31,9 @@
                 <button id="loginSubmit" class="accent" type="submit">Sign In</button>
             </div>
         </form>
+        <div class="note">
+            Tip: test with both <code>ROLE_USER</code> and <code>ROLE_ADMIN</code> accounts to validate protected pages and actions.
+        </div>
         <div id="loginFlash" class="flash" style="display:none;"></div>
     </article>
 </section>
