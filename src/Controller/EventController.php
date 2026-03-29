@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -18,6 +19,7 @@ final class EventController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly EventRepository $eventRepository,
         private readonly ReservationRepository $reservationRepository,
+        private readonly HtmlSanitizerInterface $appSanitizer,
     ) {
     }
 
@@ -100,10 +102,10 @@ final class EventController extends AbstractController
         }
 
         $event = new Event();
-        $event->setTitle((string) $payload['title']);
-        $event->setDescription((string) $payload['description']);
+        $event->setTitle($this->sanitizeText((string) $payload['title']));
+        $event->setDescription($this->sanitizeText((string) $payload['description']));
         $event->setDate($date);
-        $event->setLocation((string) $payload['location']);
+        $event->setLocation($this->sanitizeText((string) $payload['location']));
         $event->setSeats($seats);
         $event->setImage(isset($payload['image']) ? (string) $payload['image'] : null);
 
@@ -123,11 +125,11 @@ final class EventController extends AbstractController
         }
 
         if (array_key_exists('title', $payload)) {
-            $event->setTitle((string) $payload['title']);
+            $event->setTitle($this->sanitizeText((string) $payload['title']));
         }
 
         if (array_key_exists('description', $payload)) {
-            $event->setDescription((string) $payload['description']);
+            $event->setDescription($this->sanitizeText((string) $payload['description']));
         }
 
         if (array_key_exists('date', $payload)) {
@@ -140,7 +142,7 @@ final class EventController extends AbstractController
         }
 
         if (array_key_exists('location', $payload)) {
-            $event->setLocation((string) $payload['location']);
+            $event->setLocation($this->sanitizeText((string) $payload['location']));
         }
 
         if (array_key_exists('seats', $payload)) {
@@ -219,5 +221,10 @@ final class EventController extends AbstractController
         } catch (\Exception) {
             return null;
         }
+    }
+
+    private function sanitizeText(string $value): string
+    {
+        return trim($this->appSanitizer->sanitize($value));
     }
 }
