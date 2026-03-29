@@ -8,12 +8,17 @@
 <section class="hero">
     <h1>My Reservations</h1>
     <p>Displays reservations from <code>/api/reservations/me</code> and allows cancellation.</p>
+    <div class="chips">
+        <span class="chip">Feed: /api/reservations/me</span>
+        <span class="chip">Cancel: DELETE /api/reservations/{id}</span>
+    </div>
 </section>
 
 <section class="grid">
     <article class="panel">
         <h2>Reservation Feed</h2>
         <button id="refreshReservations" class="alt">Refresh</button>
+        <div class="note">Active reservations can be cancelled; cancelled ones are kept for traceability.</div>
         <div id="reservationFlash" class="flash" style="display:none;"></div>
         <div id="reservationList" class="list" style="margin-top:.8rem;"></div>
     </article>

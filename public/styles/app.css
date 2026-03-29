@@ -50,6 +50,32 @@ body {
 
 .brand {
   text-decoration: none;
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.chip {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.note {
+  margin-top: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 0.65rem 0.8rem;
+  background: #fffdf8;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
   color: var(--ink);
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -95,6 +121,14 @@ body {
   border-radius: 24px;
   padding: clamp(1.2rem, 2vw, 2rem);
   box-shadow: 0 22px 35px rgba(58, 38, 12, 0.1);
+}
+
+.hero::after {
+  content: "";
+  display: block;
+  margin-top: 1rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
 }
 
 .hero h1 {
@@ -226,6 +260,12 @@ button.accent {
   border-radius: 14px;
   padding: 0.85rem;
   background: #fff;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 22px rgba(54, 36, 13, 0.08);
 }
 
 .row {
@@ -297,7 +337,40 @@ footer {
   font-size: 0.85rem;
 }
 
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.7rem;
+}
+
+.quick-actions a {
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.75rem;
+  font-weight: 600;
+}
+
+.quick-actions a:hover {
+  border-color: var(--accent);
+}
+
 @media (max-width: 768px) {
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .menu {
+    width: 100%;
+  }
+
+  .auth-box {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .field.half {
     grid-column: span 12;
   }

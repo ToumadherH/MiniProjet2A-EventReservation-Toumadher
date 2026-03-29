@@ -11,6 +11,12 @@
         This interface connects directly to your Symfony JWT API. Use the login page to store your token,
         browse events, reserve seats, and manage reservations from one place.
     </p>
+    <div class="quick-actions" style="margin-top:1rem;">
+        <a href="{{ path('frontend_login') }}">Authenticate</a>
+        <a href="{{ path('frontend_events') }}">Browse Events</a>
+        <a href="{{ path('frontend_reservations') }}">Manage Reservations</a>
+        <a href="{{ path('frontend_admin') }}">Open Admin Console</a>
+    </div>
 </section>
 
 <section class="grid">
