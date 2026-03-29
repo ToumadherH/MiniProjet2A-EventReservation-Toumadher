@@ -1,5 +1,30 @@
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    command: >-
+      sh -c "composer install &&
+      php bin/console doctrine:migrations:migrate --no-interaction &&
+      php -S 0.0.0.0:8000 -t public"
+    volumes:
+      - ./:/app
+    environment:
+      APP_ENV: dev
+      APP_SECRET: change-me
+      DATABASE_URL: postgresql://app:!ChangeMe!@database:5432/app?serverVersion=16&charset=utf8
+      JWT_SECRET_KEY: /app/config/jwt/private.pem
+      JWT_PUBLIC_KEY: /app/config/jwt/public.pem
+      JWT_PASSPHRASE: cff6cf3c250e793091f5526effe7778b9d359b5e3e672962d8760dc0101b972d
+      MAILER_DSN: smtp://mailer:1025
+    ports:
+      - "8000:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+
 ###> doctrine/doctrine-bundle ###
   database:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
