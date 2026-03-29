@@ -69,10 +69,22 @@ window.EventApp = {
     return headers;
   },
 
+  getCsrfToken() {
+    const node = document.querySelector('meta[name="api-csrf-token"]');
+    return node ? node.getAttribute('content') || '' : '';
+  },
+
   async request(path, options = {}) {
+    const method = (options.method || 'GET').toUpperCase();
+    const unsafe = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+    const headers = this.authHeaders(options.headers || {});
+    if (unsafe && !headers['X-CSRF-Token']) {
+      headers['X-CSRF-Token'] = this.getCsrfToken();
+    }
+
     const response = await fetch(`${this.apiBase}${path}`, {
       ...options,
-      headers: this.authHeaders(options.headers || {}),
+      headers,
     });
 
     if (response.status === 401 || response.status === 403) {
