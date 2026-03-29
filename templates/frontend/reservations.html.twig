@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% set active = 'reservations' %}
+
+{% block title %}My Reservations - Event Studio{% endblock %}
+
+{% block body %}
+<section class="hero">
+    <h1>My Reservations</h1>
+    <p>Displays reservations from <code>/api/reservations/me</code> and allows cancellation.</p>
+</section>
+
+<section class="grid">
+    <article class="panel">
+        <h2>Reservation Feed</h2>
+        <button id="refreshReservations" class="alt">Refresh</button>
+        <div id="reservationFlash" class="flash" style="display:none;"></div>
+        <div id="reservationList" class="list" style="margin-top:.8rem;"></div>
+    </article>
+</section>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+async function loadReservations() {
+    const data = await EventApp.request('/reservations/me');
+    const list = document.getElementById('reservationList');
+    list.innerHTML = '';
+
+    if (!data.items || data.items.length === 0) {
+        list.innerHTML = '<div class="card">No reservations yet.</div>';
+        return;
+    }
+
+    data.items.forEach((item) => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="row">
+                <strong>${item.event ? item.event.title : 'Unknown event'}</strong>
+                <span class="status ${item.status === 'active' ? 'ok' : 'warn'}">${item.status}</span>
+            </div>
+            <div><small>Booked at: ${new Date(item.createdAt).toLocaleString()}</small></div>
+            <div class="row" style="margin-top:.6rem;">
+                <button class="alt" data-id="${item.id}" ${item.status !== 'active' ? 'disabled' : ''}>Cancel</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+
+    list.querySelectorAll('button[data-id]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            try {
+                await EventApp.request(`/reservations/${btn.dataset.id}`, { method: 'DELETE' });
+                EventApp.flash('reservationFlash', 'Reservation cancelled.');
+                await loadReservations();
+            } catch (error) {
+                EventApp.flash('reservationFlash', error.message);
+            }
+        });
+    });
+}
+
+document.getElementById('refreshReservations').addEventListener('click', () => {
+    loadReservations().catch((error) => EventApp.flash('reservationFlash', error.message));
+});
+
+loadReservations().catch((error) => EventApp.flash('reservationFlash', error.message));
+</script>
+{% endblock %}

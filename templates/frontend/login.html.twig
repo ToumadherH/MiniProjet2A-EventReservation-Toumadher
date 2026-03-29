@@ -1,0 +1,83 @@
+{% extends 'base.html.twig' %}
+
+{% set active = 'login' %}
+
+{% block title %}Login - Event Studio{% endblock %}
+
+{% block body %}
+<section class="hero">
+    <h1>JWT Login</h1>
+    <p>Authenticate against <code>/api/login_check</code>. Token is stored in local storage for frontend calls.</p>
+</section>
+
+<section class="grid">
+    <article class="panel">
+        <h2>Credentials</h2>
+        <form id="loginForm" class="form-row">
+            <div class="field half">
+                <label for="username">Username</label>
+                <input id="username" name="username" required>
+            </div>
+            <div class="field half">
+                <label for="password">Password</label>
+                <input id="password" type="password" name="password" required>
+            </div>
+            <div class="field">
+                <button id="loginSubmit" class="accent" type="submit">Sign In</button>
+            </div>
+        </form>
+        <div id="loginFlash" class="flash" style="display:none;"></div>
+    </article>
+</section>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    EventApp.clearFlash('loginFlash');
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const submitButton = document.getElementById('loginSubmit');
+
+    EventApp.clearFieldError('username');
+    EventApp.clearFieldError('password');
+
+    let hasError = false;
+    if (!username) {
+        EventApp.setFieldError('username', 'Username is required.');
+        hasError = true;
+    }
+    if (!password) {
+        EventApp.setFieldError('password', 'Password is required.');
+        hasError = true;
+    }
+
+    if (hasError) {
+        return;
+    }
+
+    try {
+        EventApp.setLoading(submitButton, 'Signing in...');
+        const response = await fetch('/api/login_check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload.token) {
+            throw new Error(payload.error || 'Invalid credentials.');
+        }
+
+        EventApp.setToken(payload.token);
+        EventApp.flash('loginFlash', 'Login successful. JWT token saved.');
+    } catch (error) {
+        EventApp.flash('loginFlash', error.message);
+    } finally {
+        EventApp.clearLoading(submitButton);
+    }
+});
+</script>
+{% endblock %}
